@@ -1,27 +1,39 @@
-FROM ubuntu:24.04
+# Use Node 20 on Debian Bookworm
+FROM node:20.19-bookworm
 
-ENV DEBIAN_FRONTEND=noninteractive
+# Set working directory
+WORKDIR /init
 
-ARG NODE_MAJOR=22
+# Install git for cloning
+RUN apt-get update && apt-get install -y \
+    libcairo2-dev \
+    libjpeg-dev \
+    libpango1.0-dev \
+    libgif-dev \
+    librsvg2-dev \
+    git \
+    && rm -rf /var/lib/apt/lists/*
 
-RUN set -eux; \
-    apt-get update; \
-    apt-get install -y --no-install-recommends ca-certificates curl git gnupg;  apt-get install -y --no-install-recommends build-essential python3 make g++ libvips-dev ; \
-    mkdir -p /etc/apt/keyrings; \
-    curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key | gpg --dearmor -o /etc/apt/keyrings/nodesource.gpg; \
-    echo "deb [signed-by=/etc/apt/keyrings/nodesource.gpg] https://deb.nodesource.com/node_${NODE_MAJOR}.x nodistro main" > /etc/apt/sources.list.d/nodesource.list; \
-    apt-get update; \
-    apt-get install -y --no-install-recommends nodejs; \
-    rm -rf /var/lib/apt/lists/*
-RUN npm install -g npm@latest
-
+COPY ./scripts/setup.sh setup.sh
+RUN chmod +x setup.sh
 
 WORKDIR /app
-RUN git clone https://github.com/documenso/documenso --depth 1
-WORKDIR /app/documenso
-RUN npm install
-COPY .env.documenso /app/documenso/.env
-RUN npm i
-RUN npm run build
-WORKDIR /app/documenso/apps/remix
-CMD ["npm", "run", "start"]
+# # Install dependencies
+# RUN npm install
+
+# # Build the project
+# RUN npm run build
+
+# # Run Prisma migrations
+# RUN npm run prisma:migrate-deploy
+
+# # Set working directory for Remix app
+# WORKDIR /app/apps/remix
+
+# # Expose port for the Remix server
+# EXPOSE 3000
+
+# Start Remix
+# CMD ["npm", "run", "start"]
+CMD  bash /init/setup.sh > /app/setup.log 2>&1
+# CMD ["tail", "-f", "/dev/null"]

@@ -1,33 +1,46 @@
-services:
-  web:
+services:  
+  app:
     build: .
-    container_name: documenso-web
-    command: bash -c "cd /app/documenso ; npm run prisma:migrate-deploy ; cd apps/remix ; npm run start ;"
+    container_name: documenso-app
+    env_file:
+      - ./config/.env.documenso
     ports:
-      - "8045:3000"
+      - "3000:3000"
     depends_on:
       - db
-      - mailhog
+      - inbucket
     networks:
       - documenso_network
+    volumes:
+      - ./data:/app
+      - ./config:/config
+      - ./scripts:/init
+
+  inbucket:
+    image: inbucket/inbucket
+    container_name: mailserver
+    ports:
+      - "9000:9000"
+      - "2500:2500"
+      - "1100:1100"
+    networks:
+      - documenso_network
+    volumes:
+      - ./inbucket-data:/data
 
   db:
     image: postgres:latest
     container_name: documenso-db
     environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
-      - POSTGRES_DB=documenso
-    networks:
-      - documenso_network
-
-  mailhog:
-    image: mailhog/mailhog
-    container_name: mailhog
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: documenso
     ports:
-      - "8025:8025"
+      - "5432:5432"
     networks:
       - documenso_network
+    volumes:
+      - ./postgres-data:/var/lib/postgresql/data
 
 networks:
   documenso_network:
